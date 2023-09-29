@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .dot {
+            height: 10px;
+            width: 10px;
+            background-color: #e84945cc;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .loader-small {
+            border: 5px solid #f3f3f3;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+            border-top: 5px solid rgba(80, 175, 65, 0.8);
+            border-bottom: 5px solid rgba(48, 88, 117, 0.8);
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body style="background: #202124;     margin: 0;    color: #bdc1c6;">
+<span class="dot" id="dot1"></span>Server
+
+<div id="interval-loader-1" style="position: absolute; margin-top: 25px;">
+    <div class="loader-small"></div>
+    <span class="">please wait until the server wakes up</span>
+    <div class="" id="interval1"></div>
+</div>
+
+
+<div style="display: flex; justify-content: center; margin-top: 25px">
+
+    <button id="start1">start</button>
+    <button id="stop1">stop</button>
+    <div id="rec1" style="margin-left: 10px; width: 25px;"></div>
+    sec
+
+    <select name="la" id="la1" style="margin-left: 100px;">
+        <option value="en" selected>en</option>
+        <option value="it">it</option>
+        <option value="ru">ru</option>
+        <option value="es">es</option>
+        <option value="ko">ko</option>
+    </select>
+</div>
+<br/>
+<div style="display: flex; justify-content: space-around; ">
+    <div id="audio-r1" style="width: 500px"></div>
+</div>
+</body>
+
+<script>
+    const userMedia = navigator.mediaDevices.getUserMedia({audio: true});
+    let countN = 1;
+    const L = 'http://localhost:8000'
+    let base = location.origin !== undefined ? location.origin : L
+    let dev = base === L
+    if (dev) {
+
+    }
+
+    intervalStart = 12
+    const interval = setInterval(() => {
+        const i = document.getElementById("interval1");
+        i.textContent = intervalStart + 'sec';
+        --intervalStart
+    }, 1000);
+
+    // base = 'https://bbaqu9rku84rliaf390l.containers.yandexcloud.net'
+    fetch(base + '/message', {
+        method: 'GET',
+    }).then(f => {
+        const save = document.getElementById("dot1");
+        save.style.backgroundColor = 'green';
+        clearInterval(interval);
+        const loader = document.getElementById("interval-loader-1");
+        loader.style.display = 'none';
+    }).catch(c => {
+        const save = document.getElementById("dot1");
+        save.style.backgroundColor = 'red';
+        clearInterval(interval);
+        const loader = document.getElementById("interval-loader-1");
+        loader.style.display = 'none';
+    })
+
+
+    let send2Result
+    let recInterval
+    let recStart = 0
+    rec = () => {
+        recStart = 0
+        recInterval = setInterval(() => {
+            const i = document.getElementById("rec1");
+            i.textContent = recStart;
+            recStart = recStart + 0.1
+            recStart = Math.round(recStart * 10) / 10
+        }, 100);
+    }
+
+
+    async function send3(blob) {
+        const l = document.getElementById("la1");
+        const la = l.value;
+        let formData = new FormData();
+        formData.append("audio1", blob);
+        formData.append("la", la);
+        let response = await fetch(base + '/audio1', {
+            method: 'POST',
+            body: formData
+        });
+        send2Result = await response.json();
+        console.log(send2Result)
+        const r1 = document.getElementById("audio-r1");
+        const div = document.createElement("div");
+        div.textContent = send2Result.result.text
+        r1.appendChild(div)
+    }
+
+
+    userMedia.then(mediaStreamObj => {
+        let start = document.getElementById('start1');
+        let stop = document.getElementById('stop1');
+        let mediaRecorder = new MediaRecorder(mediaStreamObj);
+        start.addEventListener('click', ev => {
+            console.log('start', mediaRecorder.state);
+            mediaRecorder.start();
+            rec()
+            start.disabled = true;
+        })
+        stop.addEventListener('click', ev => {
+            console.log('stop', mediaRecorder.state);
+            clearInterval(recInterval);
+            mediaRecorder.stop();
+            start.disabled = false;
+            document.getElementById("rec1").textContent = '0'
+        });
+
+        let chunks1 = [];
+        let chunks2 = [];
+
+        mediaRecorder.onstop = (e) => {
+            console.log("onstop ", e);
+            let au = countN === 2 ? chunks1 : chunks2;
+            const blob = new Blob(au, {type: "audio/ogg; codecs=opus"});
+            send3(blob)
+
+
+            const audio = document.createElement("audio");
+            audio.controls = true;
+            const audioURL = window.URL.createObjectURL(blob);
+            audio.src = audioURL;
+            const b = document.getElementById("audio-r1");
+            b.appendChild(audio);
+            // audio.play();
+        };
+
+        mediaRecorder.ondataavailable = (e) => {
+            console.log("ondataavailable", e)
+            if (countN === 1) {
+                chunks1 = []
+                chunks1.push(e.data);
+                countN = 2
+            } else {
+                chunks2 = []
+                chunks2.push(e.data);
+                countN = 1
+            }
+        };
+    })
+        .catch(err => {
+            console.log(err.name, err.message);
+        });
+
+
+</script>
+</html>
