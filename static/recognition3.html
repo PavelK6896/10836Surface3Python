@@ -46,6 +46,7 @@
 </div>
 
 
+
 <div style="display: flex; justify-content: center; margin-top: 25px">
 
     <button id="start1">start</button>
@@ -85,7 +86,7 @@
         --intervalStart
     }, 1000);
 
-    // base = 'https://bbaqu9rku84rliaf390l.containers.yandexcloud.net'
+    base = 'https://bbaqu9rku84rliaf390l.containers.yandexcloud.net'
     fetch(base + '/message', {
         method: 'GET',
     }).then(f => {
@@ -195,6 +196,7 @@
         const b = document.getElementById("audio-r1");
         b.replaceChildren();
     }
+
 
 
 </script>
