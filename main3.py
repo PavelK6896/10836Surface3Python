@@ -15,7 +15,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 BASE = "small"
 
 
-model = WhisperModel(BASE, device="cpu", compute_type="float32", local_files_only=False)
+model = WhisperModel("./model2", device="cpu", compute_type="float32", local_files_only=False)
 model_lock = Lock()
 
 app = FastAPI()
@@ -39,6 +39,10 @@ async def root():
     return {"message": "Hello user"}
 
 
+prompt = ('А1 А2 А3 А4 А5 А6 А7 А8 А9 А10 ' +
+'З1 З2 З3 З4 З5 З6 З7 З8 З9 З10 ' +
+'Б1 Б2 Б3 Б4 Б5 Б6 Б7 Б8 Б9 Б10 ' +
+'A Б В Г Д У Ж З И К Л М ')
 @app.post("/audio1")
 async def rec_file(
         la: Annotated[str, Form()],
@@ -54,7 +58,7 @@ async def rec_file(
 
     options_dict = {"language": la}
     options_dict["word_timestamps"] = False
-    options_dict["initial_prompt"] = "Glossary: А1, А2, А3, А4, А5, А6, А7, В1, В2, В3, В4, В5, В6, В7"
+    options_dict["initial_prompt"] = prompt
 
     with model_lock:
         segments = []
@@ -77,3 +81,8 @@ import uvicorn
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
+
+
+
+
+# ct2-transformers-converter --model ./model --output_dir ./model2
